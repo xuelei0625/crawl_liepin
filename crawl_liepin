@@ -3,36 +3,40 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import time
 
-def link(city,job,total_page):
-    info=[]
-    for page in range(1,total_page+1):
+def find_job(city, job, total_page):
+    info = []
+    for page in range(1, total_page + 1):
         time.sleep(3)
-        params = { 
-            'dqs': city, 
-            'searchType': 1, 
+
+        #补充url参数,空值的参数已删除
+        params = {
+            'dqs': city,#猎聘城市采用的是代码形式,任意选择一个城市查看url里的dps参数即可知晓
+            'searchType': 1,
             'init': 1,
             'sortFlag': 15,
             'flushckid': 0,
             'fromSearchBtn': 1,
             'headckid': '31373175ca9db456',
-            #'d_headId': 'a407a8a3c8b3f3825d5e9296154bea95',
+            # 'd_headId': 'a407a8a3c8b3f3825d5e9296154bea95',#添加此参数会报错,故注释掉
             'd_ckId': '530405e35dd6942d9d462aa9278ff122',
             'd_sfrom': 'search_fp_bar',
             'd_curPage': 0,
             'd_pageSize': 40,
             'siTag': 'zZ9v9HW0Ykw_xtTgPBfuFA~r3i1HcfrfE3VRWBaGW6LoA',
-            'key': job,
-            'curPage':page,
+            'key': job,#岗位名称
+            'curPage': page,#需要抓取的页数,默认每页40项,共100页
         }
-        
+
         url = 'https://www.liepin.com/zhaopin/?'
+        #添加headers,否则会报错
         headers = {
             'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 11_0 like Mac OS X) AppleWebKit/604.1.38 (KHTML, like Gecko) Version/11.0 Mobile/15A372 Safari/604.1',
         }
-        
-        web_data = requests.get(url,params=params,headers=headers)#verify=False
-        soup = BeautifulSoup(web_data.text,'lxml')
 
+        web_data = requests.get(url, params=params, headers=headers)  # 不加headers就需要添加此参数verify=False
+        soup = BeautifulSoup(web_data.text, 'lxml')
+
+        #各项值
         jobs = soup.select('div.job-info > h3 > a')
         salarys = soup.select('div.job-info > p.condition.clearfix > span.text-warning')
         addresses = soup.select('div.job-info > p.condition.clearfix > a')
@@ -40,26 +44,27 @@ def link(city,job,total_page):
         year_limits = soup.select('div.job-info > p.condition.clearfix > span:nth-child(4)')
         publish_times = soup.select('div.job-info > p.time-info.clearfix > time')
         companys = soup.select('div.company-info.nohover > p.company-name > a')
-        
-        for job,salary,address,edu,year_limit,publish_time,company in zip(jobs,salarys,addresses,edus,year_limits,publish_times,companys):
+
+        for job, salary, address, edu, year_limit, publish_time, company in zip(jobs, salarys, addresses, edus,year_limits, publish_times, companys):
             data = {
-                 'job':job.get_text().strip(),
-                 'salary':salary.get_text(),
-                 'address':address.get_text(),
-                 'company':company.get_text(),
-                 'edu':edu.get_text(),
-                 'year_limit':year_limit.get_text(),
-                 'publish_time':publish_time.get('title'),
-                 'company_link':company.get('href'),
-                 'job_link':job.get('href'),
-             }
+                'job': job.get_text().strip(),
+                'salary': salary.get_text(),
+                'address': address.get_text(),
+                'company': company.get_text(),
+                'edu': edu.get_text(),
+                'year_limit': year_limit.get_text(),
+                'publish_time': publish_time.get('title'),
+                'company_link': company.get('href'),
+                'job_link': job.get('href'),
+            }
             info.append(data)
         print(len(info))
 
-    result = pd.DataFrame(info)[['job','salary','address','company','edu','year_limit','publish_time','company_link','job_link']]
-
+    result = pd.DataFrame(info)[['job', 'salary', 'address', 'company', 'edu', 'year_limit', 'publish_time', 'company_link', 'job_link']]
     writer = pd.ExcelWriter('/Users/xuelei/Desktop/猎聘_上海_数据分析01.xlsx')
     result.to_excel(writer, 'Sheet1')
     writer.save()
-            
-link('020','数据分析',100)    
+
+
+if __name__ == 'main':
+    find_job('020', '数据分析', 100)
